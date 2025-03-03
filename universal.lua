@@ -14,7 +14,7 @@ local hatch, nc, drive, interface
 for side = 0, 5 do
     local n = getInventoryName(side)
     if n == "gt.blockmachines" and getTankCount(side) > 0 then hatch = side
-    elseif n == "tile.extrautils:chestFull" then nc = side
+    elseif n == "tile.extrautils:chestFull" or "tile.etfuturum.barrel" then nc = side
     elseif n == "tile.appliedenergistics2.BlockDrive" then drive = side
     elseif not n then
         -- This call must succeed. Only a tile entity that can actually receive items passes this.
