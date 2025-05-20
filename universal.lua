@@ -1,14 +1,15 @@
-local t = component.proxy(component.list("transposer")())
+local transposer = component.proxy(component.list("transposer")())
 
 -- Cache global functions for faster access
-local ipairs = ipairs
-local uptime, pullSignal = computer.uptime, computer.pullSignal
-local getInventoryName, getTankCount, getAllStacks, getFluidInTank, transferItem =
-    t.getInventoryName,
-    t.getTankCount,
-    t.getAllStacks,
-    t.getFluidInTank,
-    t.transferItem
+local ipairs           = ipairs
+local assert           = assert
+local uptime           = computer.uptime
+local pullSignal       = computer.pullSignal
+local getInventoryName = transposer.getInventoryName
+local getTankCount     = transposer.getTankCount
+local getAllStacks     = transposer.getAllStacks
+local getFluidInTank   = transposer.getFluidInTank
+local transferItem     = transposer.transferItem
 
 local hatch, nc, drive, interface
 for side = 0, 5 do
@@ -24,7 +25,12 @@ for side = 0, 5 do
     end
 end
 
-local ncs, disks, tanks, fluid, target
+-- Ensure required components were found
+assert(       nc, "Error: No NC inventory found.")
+assert(    drive, "Error: No drive found.")
+assert(interface, "Error: No interface found.")
+
+local ncs, disks, fluid, target, storedTypes
 while true do
     ncs = getAllStacks(nc)
     -- We may need to circuit switch if there is a non-consumed item.
@@ -36,19 +42,17 @@ while true do
                 fluid = false
                 -- If using a fluid storage cell, we are using an advanced stocking hatch.
                 if disks[2] then
-                    -- This check is very cursed, just trust that longer NBT data means fluid is present.
-                    -- No longer required on versions >= 2.7.3.
-                    if #disks[2].tag > 48 then fluid = true end
+                    storedTypes = disks[2].storedFluidTypes
+                    fluid = storedTypes and storedTypes > 0 or not storedTypes and #disks[2].tag > 48
                 -- Otherwise, check the fluid hatch next to the transposer, if present.
                 elseif hatch then
-                    tanks = getFluidInTank(hatch)
-                    for i = 1, #tanks do
-                        if tanks[i].amount > 0 then fluid = true break end
+                    for _, tank in ipairs(getFluidInTank(hatch)) do
+                        if tank.amount > 0 then fluid = true break end
                     end
                 end
                 -- Move the non-consumed item if no more fluids present.
                 if not fluid then
-                    for i, _ in ipairs(ncs) do
+                    for i in ipairs(ncs) do
                         while transferItem(nc, interface, 1, i, (i + interface - 1) % 9 + 1) == 0 do end
                     end
                     break
